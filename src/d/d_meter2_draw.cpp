@@ -661,6 +661,9 @@ void dMeter2Draw_c::draw() {
         if (mpItemXY[i] != NULL) {
             for (int j = 0; j < 3; j++) {
                 f32 temp_f30 = mItemParams[i].num_scale * 16.0f;
+#if TARGET_PC
+                temp_f30 *= dGetUserHudScale();
+#endif
 
                 Vec vtx0 = mpItemXY[i]->getPanePtr()->getGlbVtx(0);
                 Vec vtx3 = mpItemXY[i]->getPanePtr()->getGlbVtx(3);
@@ -1695,7 +1698,9 @@ void dMeter2Draw_c::drawKanteraScreen(u8 i_meterType) {
 
     f32 magicPosX = field_0x5e4[i_meterType];
     f32 magicPosY = field_0x5f0[i_meterType];
-    dAnchorHudScale(mpMagicParent, HudCorner::TopLeft, &magicPosX, &magicPosY);
+    // The oil/magic bar sits inset within its pane box, so use a reduced horizontal pull
+    // (like the heart row) to keep it from overshooting off the left edge when shrunk.
+    dAnchorHudScale(mpMagicParent, HudCorner::TopLeft, &magicPosX, &magicPosY, 0.3f);
     mpMagicParent->paneTrans(magicPosX, magicPosY);
 #else
     mpMagicParent->scale(field_0x5cc[i_meterType], field_0x5d8[i_meterType]);
@@ -2263,8 +2268,18 @@ void dMeter2Draw_c::drawKey(s16 i_keyNum) {
         }
     }
 
+#if TARGET_PC
+    const f32 keyScale = g_drawHIO.mKeyScale * dGetUserHudScale();
+    mpKeyParent->scale(keyScale, keyScale);
+
+    f32 keyPosX = g_drawHIO.mKeyPosX;
+    f32 keyPosY = g_drawHIO.mKeyPosY;
+    dAnchorHudScale(mpKeyParent, HudCorner::BottomRight, &keyPosX, &keyPosY);
+    mpKeyParent->paneTrans(keyPosX, keyPosY);
+#else
     mpKeyParent->scale(g_drawHIO.mKeyScale, g_drawHIO.mKeyScale);
     mpKeyParent->paneTrans(g_drawHIO.mKeyPosX, g_drawHIO.mKeyPosY);
+#endif
 }
 
 void dMeter2Draw_c::setAlphaKeyChange(bool param_0) {
@@ -3644,9 +3659,16 @@ void dMeter2Draw_c::drawKanteraMeter(u8 i_button, f32 i_alphaRate) {
     Vec vtx0 = pane->getPanePtr()->getGlbVtx(0);
     Vec vtx3 = pane->getPanePtr()->getGlbVtx(3);
 
+#if TARGET_PC
+    const f32 oilUserScale = dGetUserHudScale();
+    mpKanteraMeter[i_button]->setPos(((vtx0.x + vtx3.x) * 0.5f) + 9.0f * oilUserScale + sp10[i_button],
+                                     vtx3.y + sp8[i_button]);
+    mpKanteraMeter[i_button]->setScale(0.6f * oilUserScale, 0.6f * oilUserScale);
+#else
     mpKanteraMeter[i_button]->setPos(((vtx0.x + vtx3.x) * 0.5f) + 9.0f + sp10[i_button],
                                      vtx3.y + sp8[i_button]);
     mpKanteraMeter[i_button]->setScale(0.6f, 0.6f);
+#endif
     mpKanteraMeter[i_button]->setNowGauge(dComIfGs_getMaxOil(), dComIfGs_getOil());
     mpKanteraMeter[i_button]->setAlphaRate(i_alphaRate);
 }
